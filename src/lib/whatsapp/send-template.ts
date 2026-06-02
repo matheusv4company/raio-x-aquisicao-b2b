@@ -1,13 +1,20 @@
-// Disparo do template "sua análise está pronta" (com 2 quick-reply buttons) para o lead.
-// STUB até credenciais + template aprovado pela Meta (Fase 6). Contrato estável: a Fase 6
-// só implementa a chamada real à Cloud API por baixo desta mesma função.
-import type { DiagnosticInput } from "@/lib/diagnostic";
+// Envia o template "sua análise está pronta" (com 2 quick-reply buttons) para o lead.
+// Passa por TODAS as travas: validação, kill switch, allowlist, dedup. SEM retry.
+import {
+  canSend,
+  isAllowed,
+  waConfig,
+  DEDUP_WINDOW_SECONDS,
+} from "@/lib/whatsapp/config";
+import { sendMessage } from "@/lib/whatsapp/client";
+import { wasTemplateSentToPhoneRecently } from "@/lib/submissions";
 
-export interface SendTemplateResult {
+export interface SendResult {
   sent: boolean;
-  stubbed: boolean;
+  skipped?: string;
+  status?: number;
+  error?: unknown;
   to: string;
-  detail?: string;
 }
 
 /** Normaliza telefone BR para E.164 (+55DDDNÚMERO). */
@@ -17,19 +24,56 @@ export function normalizePhoneBR(raw: string): string {
   return `+55${digits}`;
 }
 
-export async function sendDiagnosticReadyTemplate(
-  input: DiagnosticInput,
-): Promise<SendTemplateResult> {
-  const to = normalizePhoneBR(input.telefone);
+/** +55 + DDD(2) + número(8 ou 9) = 12 ou 13 dígitos. */
+export function isValidPhoneBR(e164: string): boolean {
+  const d = e164.replace(/\D/g, "");
+  return d.startsWith("55") && (d.length === 12 || d.length === 13);
+}
 
-  if (!process.env.WHATSAPP_ACCESS_TOKEN || !process.env.WHATSAPP_PHONE_NUMBER_ID) {
-    console.log(
-      `[whatsapp:stub] enviaria o template "análise pronta" (com botões) para ${to} — ${input.nome}`,
-    );
-    return { sent: false, stubbed: true, to, detail: "stub (sem credenciais)" };
+export async function sendDiagnosticReadyTemplate(
+  toE164: string,
+  firstName: string,
+): Promise<SendResult> {
+  const to = toE164;
+
+  // 1) Telefone válido (número inválido derruba o quality rating)
+  if (!isValidPhoneBR(to)) return { sent: false, skipped: "telefone inválido", to };
+
+  // 2) Kill switch + credenciais
+  const gate = canSend();
+  if (!gate.ok) {
+    console.log(`[whatsapp] NÃO enviado (${gate.reason}) — ${to}`);
+    return { sent: false, skipped: gate.reason, to };
   }
 
-  // TODO(Fase 6): chamada real à Cloud API — template utility/marketing com 2 quick-reply buttons
-  // [Quero receber agora] / [Não quero receber]. O clique abre a janela de 24h (via webhook).
-  return { sent: false, stubbed: true, to, detail: "envio real ainda não implementado (Fase 6)" };
+  // 3) Allowlist (modo de teste: só números aprovados)
+  if (!isAllowed(to)) {
+    console.log(`[whatsapp] ${to} fora da allowlist — não enviado`);
+    return { sent: false, skipped: "fora da allowlist", to };
+  }
+
+  // 4) Dedup (1 template por telefone na janela)
+  if (await wasTemplateSentToPhoneRecently(to, DEDUP_WINDOW_SECONDS)) {
+    console.log(`[whatsapp] dedup — template já enviado a ${to} recentemente`);
+    return { sent: false, skipped: "dedup", to };
+  }
+
+  // 5) Envio (sem retry). Template com 1 variável no corpo ({{1}} = primeiro nome) + 2 quick-reply buttons.
+  const res = await sendMessage({
+    to: to.replace("+", ""),
+    type: "template",
+    template: {
+      name: waConfig.templateName,
+      language: { code: waConfig.templateLang },
+      components: [
+        { type: "body", parameters: [{ type: "text", text: firstName || "tudo bem" }] },
+      ],
+    },
+  });
+
+  if (!res.ok) {
+    console.error(`[whatsapp] erro ao enviar template a ${to}:`, res.status, res.body);
+    return { sent: false, status: res.status, error: res.body, to };
+  }
+  return { sent: true, status: res.status, to };
 }

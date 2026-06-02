@@ -1,8 +1,14 @@
-// Submissão do diagnóstico: valida → roda a engine → (persiste no DB: Fase 3) →
-// dispara o template do WhatsApp (stub até Fase 6). Retorna ok para a tela de confirmação.
+// Submissão do diagnóstico: valida → roda a engine → salva o lead → dispara o template do
+// WhatsApp (com travas/dedup; OFF por padrão). Persistência e WhatsApp são best-effort: um erro
+// neles NÃO quebra a confirmação para o usuário.
+import { randomUUID } from "node:crypto";
 import { diagnosticSchema } from "@/lib/diagnostic";
 import { runEngine } from "@/lib/engine/engine";
-import { sendDiagnosticReadyTemplate } from "@/lib/whatsapp/send-template";
+import { saveSubmission, markTemplateSent } from "@/lib/submissions";
+import {
+  sendDiagnosticReadyTemplate,
+  normalizePhoneBR,
+} from "@/lib/whatsapp/send-template";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -20,17 +26,36 @@ export async function POST(request: Request) {
     );
   }
   const input = parsed.data;
+  const telefone = normalizePhoneBR(input.telefone);
 
   try {
-    // Calcula o plano (será persistido na Fase 3 e virará o PDF na Fase 5).
     const run = await runEngine(input);
+    const id = randomUUID();
 
-    // TODO(Fase 3): salvar Submission(input + run.plan + status) no Postgres.
+    // Persistência (best-effort — não derruba a confirmação se o DB estiver fora).
+    try {
+      await saveSubmission(id, input, telefone, run);
+    } catch (err) {
+      console.error("[/api/diagnostico] falha ao salvar:", err);
+    }
 
-    // Dispara o template do WhatsApp (stub até Fase 6).
-    const whatsapp = await sendDiagnosticReadyTemplate(input);
+    // WhatsApp (best-effort, com todas as travas; só envia de verdade se habilitado + allowlist).
+    let whatsapp;
+    try {
+      whatsapp = await sendDiagnosticReadyTemplate(telefone, input.nome.split(" ")[0]);
+      if (whatsapp.sent) {
+        try {
+          await markTemplateSent(id);
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch (err) {
+      console.error("[/api/diagnostico] falha no WhatsApp:", err);
+      whatsapp = { sent: false, error: String(err), to: telefone };
+    }
 
-    return Response.json({ ok: true, channel: run.plan.channel, whatsapp });
+    return Response.json({ ok: true, id, channel: run.plan.channel, whatsapp });
   } catch (err) {
     console.error("[/api/diagnostico] erro:", err);
     return Response.json({ error: "Erro ao processar o diagnóstico" }, { status: 500 });
