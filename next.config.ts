@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // @react-pdf/renderer usa fontkit/yoga (wasm) — externaliza para rodar via Node, sem bundling.
-  serverExternalPackages: ["@react-pdf/renderer"],
+  // PDF via Chromium headless. puppeteer-core e @sparticuz/chromium já são auto-externalizados
+  // pelo Next 16 (lista oficial), então não precisam ser declarados aqui.
 };
 
 export default nextConfig;

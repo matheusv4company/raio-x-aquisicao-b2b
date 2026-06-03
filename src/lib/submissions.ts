@@ -35,6 +35,24 @@ export async function saveSubmission(
   return true;
 }
 
+/** Armazena os bytes do PDF pré-gerado (best-effort). */
+export async function savePdf(id: string, pdf: Buffer): Promise<void> {
+  if (!sql) return;
+  await ensureSchema();
+  await sql`UPDATE submissions SET pdf = ${pdf}, pdf_generated_at = now() WHERE id = ${id}`;
+}
+
+/** Lê os bytes do PDF pré-gerado, se já existir. */
+export async function getPdfBytes(id: string): Promise<Buffer | null> {
+  if (!sql) return null;
+  await ensureSchema();
+  const rows = await sql<{ pdf: Buffer | null }[]>`
+    SELECT pdf FROM submissions WHERE id = ${id} LIMIT 1
+  `;
+  const pdf = rows[0]?.pdf;
+  return pdf && pdf.length > 0 ? pdf : null;
+}
+
 /** Dedup: já enviamos um template para este telefone nos últimos N segundos? */
 export async function wasTemplateSentToPhoneRecently(
   telefone: string,

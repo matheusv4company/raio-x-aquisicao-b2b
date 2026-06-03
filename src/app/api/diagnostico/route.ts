@@ -4,11 +4,16 @@
 import { randomUUID } from "node:crypto";
 import { diagnosticSchema } from "@/lib/diagnostic";
 import { runEngine } from "@/lib/engine/engine";
-import { saveSubmission, markTemplateSent } from "@/lib/submissions";
+import { saveSubmission, savePdf, markTemplateSent } from "@/lib/submissions";
+import { renderAnalysisPdf } from "@/lib/pdf/render";
 import {
   sendDiagnosticReadyTemplate,
   normalizePhoneBR,
 } from "@/lib/whatsapp/send-template";
+
+// Gera o PDF (Chromium) já no submit → runtime Node e mais tempo que o padrão.
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -33,10 +38,22 @@ export async function POST(request: Request) {
     const id = randomUUID();
 
     // Persistência (best-effort — não derruba a confirmação se o DB estiver fora).
+    let saved = false;
     try {
-      await saveSubmission(id, input, telefone, run);
+      saved = await saveSubmission(id, input, telefone, run);
     } catch (err) {
       console.error("[/api/diagnostico] falha ao salvar:", err);
+    }
+
+    // Pré-gera o PDF e guarda os bytes — assim o link do WhatsApp serve algo pronto
+    // (sem cold start do Chromium no fetch da Meta). Fallback: /api/pdf/[id] gera on-demand.
+    if (saved) {
+      try {
+        const pdf = await renderAnalysisPdf(run);
+        await savePdf(id, pdf);
+      } catch (err) {
+        console.error("[/api/diagnostico] falha ao pré-gerar PDF:", err);
+      }
     }
 
     // WhatsApp (best-effort, com todas as travas; só envia de verdade se habilitado + allowlist).

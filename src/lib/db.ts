@@ -40,12 +40,17 @@ export async function ensureSchema(): Promise<void> {
       channel              text NOT NULL,
       archetype            text NOT NULL,
       result               jsonb NOT NULL,
+      pdf                  bytea,
+      pdf_generated_at     timestamptz,
       wa_status            text NOT NULL DEFAULT 'pending',
       wa_template_sent_at  timestamptz,
       wa_opt_in_at         timestamptz,
       wa_pdf_sent_at       timestamptz
     )
   `;
+  // Colunas do PDF pré-gerado (idempotente p/ tabelas já existentes).
+  await sql`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS pdf bytea`;
+  await sql`ALTER TABLE submissions ADD COLUMN IF NOT EXISTS pdf_generated_at timestamptz`;
   await sql`CREATE INDEX IF NOT EXISTS submissions_telefone_idx ON submissions (telefone)`;
   schemaReady = true;
 }

@@ -45,10 +45,16 @@ export interface ChannelDecision {
   demand: DemandSignal;
 }
 
+export interface CreativeFormat {
+  tipo: "estaticos" | "video"; // recomendação de formato (Meta)
+  motivo: string; // por que esse formato, no padrão do critério visual/complexidade
+}
+
 export interface MediaPlan {
   resumo: string;
   estrutura: string[]; // estrutura de campanha (camadas/passos)
   criativos: string[]; // ângulos de criativo sugeridos
+  formato?: CreativeFormat; // só no Meta (estáticos × vídeo)
   source: "ia" | "template";
 }
 
@@ -81,12 +87,40 @@ export interface FunnelTargets {
   unitEconomics: UnitEconomics;
 }
 
+/** Um cenário de verba da projeção (Início / Meta / Acelerar). */
+export interface ProjectionScenario {
+  nome: string;
+  recomendado: boolean; // o cenário que bate exatamente a meta
+  multiplicador: number; // fração da meta (0.5 / 1 / 1.5)
+  cpl: number; // R$ — CPL na curva (faixa pesquisada usada como curva de eficiência)
+  budgetMensal: number; // R$/mês em mídia
+  leadsMes: number;
+  vendasMes: number;
+  receitaMes: number; // R$/mês de receita nova gerada
+  roas: number; // receita/verba (1º mês; recorrente acumula)
+}
+
+/**
+ * Projeção ORIENTADA À META: a verba é DERIVADA da meta de crescimento (reverse-funnel:
+ * meta → clientes/mês → leads → verba). CPL escala dentro da faixa pesquisada. Nada inventado.
+ */
+export interface Projection {
+  metaCrescimento: DiagnosticInput["metaCrescimento"];
+  metaPct: number; // 0.2 / 0.5 / 1.0
+  metaFrase: string; // "dobrar o faturamento" (faixa de meta do PDF)
+  recorrente: boolean;
+  receitaAlvoMes: number; // R$/mês que a captação precisa gerar p/ bater a meta
+  budgetRecomendado: number; // R$/mês do cenário "Meta"
+  scenarios: ProjectionScenario[];
+}
+
 export interface DiagnosticPlan {
   channel: Channel;
   decision: ChannelDecision;
   mediaPlan: MediaPlan;
   cpl: CplEstimate;
   funnel: FunnelTargets;
+  projection: Projection;
   benchmarkCategory: string;
   benchmarkConfidence: SegmentBenchmark["confidence"];
 }
@@ -100,5 +134,6 @@ export interface EngineRun {
   mediaPlan: MediaPlan;
   cpl: CplEstimate;
   funnel: FunnelTargets;
+  projection: Projection;
   plan: DiagnosticPlan;
 }

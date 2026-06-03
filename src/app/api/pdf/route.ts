@@ -2,7 +2,11 @@
 // Mais tarde (Fase 6) o WhatsApp aponta para /api/pdf/[id] gerando a partir do Submission salvo.
 import { diagnosticSchema, type DiagnosticInput } from "@/lib/diagnostic";
 import { runEngine } from "@/lib/engine/engine";
-import { renderAnalysisPdf } from "@/lib/pdf/analysis-document";
+import { renderAnalysisPdf } from "@/lib/pdf/render";
+
+// Chromium headless precisa do runtime Node e de mais tempo que o padrão.
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const SAMPLE: DiagnosticInput = {
   segmento: "Médico oftalmologista",
@@ -10,6 +14,7 @@ const SAMPLE: DiagnosticInput = {
   produtoPrincipal: "cirurgia de catarata",
   ticketMedio: "5-10k",
   recorrencia: "pontual",
+  metaCrescimento: "forte",
   vendedores: "1-3",
   trafego: "nao",
   oferta:

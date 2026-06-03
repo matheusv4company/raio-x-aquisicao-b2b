@@ -1,7 +1,8 @@
 // STEP: estrutura de campanha + ângulos de criativo para o canal escolhido.
 // Usa LLM quando disponível; senão, templates por canal. Independente e refinável.
-import type { DiagnosticInput } from "@/lib/diagnostic";
-import type { Channel, MediaPlan } from "@/lib/engine/types";
+import { type DiagnosticInput } from "@/lib/diagnostic";
+import { getSegmentGroup } from "@/lib/segments";
+import type { Channel, CreativeFormat, MediaPlan } from "@/lib/engine/types";
 import type { LlmProvider } from "@/lib/engine/providers/llm";
 
 export async function generateMediaPlan(
@@ -16,13 +17,50 @@ export async function generateMediaPlan(
         prompt: buildPrompt(input, channel),
       });
       if (out?.estrutura?.length && out?.criativos?.length) {
-        return { ...out, source: "ia" };
+        return { ...out, formato: ensureFormato(out.formato, input, channel), source: "ia" };
       }
     } catch {
       // cai no template
     }
   }
   return templateMediaPlan(input, channel);
+}
+
+// Grupos cujo produto/resultado é VISUAL e de entendimento simples → criativos estáticos.
+// Demais (serviços conceituais / pouco visuais) → vídeo. Heurística refinável pelo LLM.
+const VISUAL_GROUPS = new Set<string>([
+  "Saúde — Medicina",
+  "Saúde — Odontologia",
+  "Saúde — Outras áreas",
+  "Imobiliário",
+  "Eventos e Hospitalidade",
+  "Construção e Engenharia",
+]);
+
+function formatoMeta(input: DiagnosticInput): CreativeFormat {
+  const group = getSegmentGroup(input.segmento);
+  const visual = group ? VISUAL_GROUPS.has(group) : false;
+  return visual
+    ? {
+        tipo: "estaticos",
+        motivo:
+          "Seu produto/resultado é visual e de entendimento simples — criativos estáticos performam bem e escalam com baixo custo de produção.",
+      }
+    : {
+        tipo: "video",
+        motivo:
+          "Seu serviço é mais conceitual / pouco visual — vídeo explica melhor a proposta e aquece o lead antes da oferta.",
+      };
+}
+
+// Garante recomendação de formato no Meta (mantém a do LLM se vier; senão, heurística).
+function ensureFormato(
+  formato: CreativeFormat | undefined,
+  input: DiagnosticInput,
+  channel: Channel,
+): CreativeFormat | undefined {
+  if (channel !== "meta") return undefined;
+  return formato ?? formatoMeta(input);
 }
 
 function buildPrompt(input: DiagnosticInput, channel: Channel): string {
@@ -59,6 +97,7 @@ function templateMediaPlan(input: DiagnosticInput, channel: Channel): MediaPlan 
   }
   return {
     source: "template",
+    formato: formatoMeta(input),
     resumo: `Apresentar a oferta "${input.produtoPrincipal}" e seus diferenciais a um público frio qualificado, gerando atenção e demanda.`,
     estrutura: [
       "Campanha de reconhecimento/tráfego com público frio amplo (Advantage+)",

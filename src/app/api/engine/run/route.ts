@@ -11,6 +11,7 @@ const SAMPLE: DiagnosticInput = {
   produtoPrincipal: "cirurgia de catarata",
   ticketMedio: "5-10k",
   recorrencia: "pontual",
+  metaCrescimento: "forte",
   vendedores: "1-3",
   trafego: "nao",
   oferta:

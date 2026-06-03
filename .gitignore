@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# artefatos gerados do preview do PDF (mantém só o script preview-pdf.mjs)
+scripts/preview*.png
+scripts/preview*.pdf

@@ -2,22 +2,13 @@
 // Independente e refinável. Constantes de cálculo no topo, fáceis de ajustar.
 import type { DiagnosticInput } from "@/lib/diagnostic";
 import { DEFAULT_FUNNEL, type SegmentBenchmark } from "@/lib/benchmarks";
+import { TICKET_RANGES } from "@/lib/engine/ranges";
 import type {
   Channel,
   CplEstimate,
   FunnelTargets,
   UnitEconomics,
 } from "@/lib/engine/types";
-
-// Faixas de ticket (R$) por valor do formulário — usadas no cálculo de unit economics.
-const TICKET_RANGES: Record<DiagnosticInput["ticketMedio"], [number, number]> = {
-  "<1k": [500, 1000],
-  "1-3k": [1000, 3000],
-  "3-5k": [3000, 5000],
-  "5-10k": [5000, 10000],
-  "10-20k": [10000, 20000],
-  "20k+": [20000, 40000],
-};
 
 // Meses de vida estimados de um cliente recorrente (para aproximar LTV). Ajustável.
 const LTV_MESES_RECORRENTE = 12;

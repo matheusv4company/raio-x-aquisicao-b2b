@@ -39,6 +39,13 @@ export const TRAFEGO = [
   { value: "interna", label: "Sim, com equipe interna" },
 ] as const;
 
+// Meta de crescimento ANUAL (12 meses). `frase` é a forma curta usada na faixa de meta do PDF.
+export const META_CRESCIMENTO = [
+  { value: "consistencia", label: "Crescer com consistência (~20%)", frase: "crescer ~20%" },
+  { value: "forte", label: "Crescimento forte (~50%)", frase: "crescer +50%" },
+  { value: "dobrar", label: "Dobrar o faturamento (100%)", frase: "dobrar o faturamento" },
+] as const;
+
 // Schema único de validação, compartilhado entre cliente (formulário) e servidor (API da Fase 4).
 export const diagnosticSchema = z.object({
   // Etapa 1 — negócio
@@ -59,6 +66,7 @@ export const diagnosticSchema = z.object({
     .max(140, "Tente resumir em poucas palavras"),
   ticketMedio: z.enum(["<1k", "1-3k", "3-5k", "5-10k", "10-20k", "20k+"]),
   recorrencia: z.enum(["recorrente", "pontual"]),
+  metaCrescimento: z.enum(["consistencia", "forte", "dobrar"]),
   vendedores: z.enum(["0", "1-3", "4-10", "10+"]),
   trafego: z.enum(["nao", "agencia", "interna"]),
   // Etapa 2 — oferta (insumo da análise de IA da Fase 2)

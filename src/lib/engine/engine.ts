@@ -16,6 +16,7 @@ import { decideChannel } from "@/lib/engine/steps/decide-channel";
 import { estimateCpl } from "@/lib/engine/steps/cpl-estimate";
 import { generateMediaPlan } from "@/lib/engine/steps/media-plan";
 import { computeFunnel } from "@/lib/engine/steps/funnel-targets";
+import { computeProjection } from "@/lib/engine/steps/projection";
 
 export interface EngineDeps {
   llm?: LlmProvider | null;
@@ -39,6 +40,7 @@ export async function runEngine(
   const cpl = estimateCpl(decision.channel, benchmark);
   const mediaPlan = await generateMediaPlan(input, decision.channel, llm);
   const funnel = computeFunnel(input, decision.channel, benchmark, cpl);
+  const projection = computeProjection(input, cpl, funnel);
 
   const plan: DiagnosticPlan = {
     channel: decision.channel,
@@ -46,9 +48,10 @@ export async function runEngine(
     mediaPlan,
     cpl,
     funnel,
+    projection,
     benchmarkCategory: benchmark.category,
     benchmarkConfidence: benchmark.confidence,
   };
 
-  return { input, keywords, demand, decision, mediaPlan, cpl, funnel, plan };
+  return { input, keywords, demand, decision, mediaPlan, cpl, funnel, projection, plan };
 }

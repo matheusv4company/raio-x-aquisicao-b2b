@@ -8,6 +8,7 @@ import {
   FATURAMENTO,
   TICKET,
   RECORRENCIA,
+  META_CRESCIMENTO,
   VENDEDORES,
   TRAFEGO,
 } from "@/lib/diagnostic";
@@ -23,6 +24,7 @@ const stepSchemas = [
     produtoPrincipal: true,
     ticketMedio: true,
     recorrencia: true,
+    metaCrescimento: true,
     vendedores: true,
     trafego: true,
   }),
@@ -157,6 +159,12 @@ export function DiagnosticForm() {
           <Field label="Modelo de cobrança" error={errors.recorrencia}>
             <Pills options={RECORRENCIA} value={data.recorrencia as string}
               onChange={(v) => set("recorrencia", v)} />
+          </Field>
+
+          <Field label="Meta de crescimento anual" error={errors.metaCrescimento}
+            hint="Quanto você quer crescer nos próximos 12 meses. Usamos isso para calcular a verba ideal.">
+            <Pills options={META_CRESCIMENTO} value={data.metaCrescimento as string}
+              onChange={(v) => set("metaCrescimento", v)} />
           </Field>
 
           <Field label="Quantos vendedores você tem?" error={errors.vendedores}>
