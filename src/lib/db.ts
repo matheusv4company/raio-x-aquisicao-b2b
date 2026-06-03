@@ -14,7 +14,8 @@ function createClient(): Sql | null {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
   const ssl = process.env.DATABASE_SSL === "disable" ? false : "require";
-  return postgres(url, { max: 1, idle_timeout: 20, connect_timeout: 10, ssl });
+  // prepare:false => compatível com poolers em modo transaction (PgBouncer/Neon/Supabase).
+  return postgres(url, { max: 1, idle_timeout: 20, connect_timeout: 10, ssl, prepare: false });
 }
 
 export const sql: Sql | null =
