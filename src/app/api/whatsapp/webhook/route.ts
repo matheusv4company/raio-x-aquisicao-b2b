@@ -49,8 +49,11 @@ export async function POST(request: Request) {
   // Log diagnóstico do payload recebido (temporário — remover depois de validar).
   console.log("[whatsapp:webhook] in:", raw.slice(0, 1500));
 
+  // Origem da requisição = domínio correto do app (robusto, sem depender de env var).
+  const origin = new URL(request.url).origin;
+
   try {
-    await handleEvent(payload);
+    await handleEvent(payload, origin);
   } catch (err) {
     console.error("[whatsapp:webhook] erro ao processar:", err);
   }
@@ -68,7 +71,7 @@ function verifySignature(raw: string, header: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-async function handleEvent(payload: any): Promise<void> {
+async function handleEvent(payload: any, origin: string): Promise<void> {
   for (const entry of payload?.entry ?? []) {
     for (const change of entry?.changes ?? []) {
       for (const msg of change?.value?.messages ?? []) {
@@ -79,7 +82,7 @@ async function handleEvent(payload: any): Promise<void> {
           msg?.interactive?.button_reply?.title ??
           ""
         ).toString();
-        if (text) await handleButton(from, text);
+        if (text) await handleButton(from, text, origin);
       }
     }
   }
@@ -92,7 +95,11 @@ function norm(s: string): string {
     .toLowerCase();
 }
 
-async function handleButton(fromE164: string, buttonText: string): Promise<void> {
+async function handleButton(
+  fromE164: string,
+  buttonText: string,
+  origin: string,
+): Promise<void> {
   const t = norm(buttonText);
   const recusar = t.includes("nao quero") || t.includes("nao receber");
   const receber = !recusar && t.includes("receber");
@@ -119,8 +126,8 @@ async function handleButton(fromE164: string, buttonText: string): Promise<void>
     return;
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const link = `${appUrl}/api/pdf/${row.id}`;
+  // Link do PDF montado a partir do host da requisição (sempre o domínio certo).
+  const link = `${origin}/api/pdf/${row.id}`;
   const res = await sendDocument(
     fromE164,
     link,
