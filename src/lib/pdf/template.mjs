@@ -56,11 +56,13 @@ export function buildAnalysisHtml(d) {
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  @page{size:A4;margin:0}
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:${C.bg};color:${C.ink};font-family:'Inter',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
   h1,h2,h3,h4{font-family:'Fraunces',serif;font-weight:500;letter-spacing:-.01em;line-height:1.12}
-  .page{width:794px;min-height:1123px;margin:0 auto;background:${C.bg};padding:46px 52px 58px;display:flex;flex-direction:column;page-break-after:always;position:relative}
-  .page+.page{margin-top:26px}
+  .page{width:210mm;height:297mm;margin:0 auto;background:${C.bg};padding:46px 52px 58px;display:flex;flex-direction:column;page-break-after:always;position:relative;overflow:hidden}
+  .page:last-child{page-break-after:auto}
+  @media screen{.page+.page{margin-top:26px}}
   .head{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;margin-bottom:26px;border-bottom:1px solid ${C.line}}
   .brand{display:flex;align-items:center;gap:9px;font-family:'Fraunces',serif;font-weight:600;font-size:16px}
   .spark{width:28px;height:28px;border-radius:8px;background:${C.ink};display:grid;place-items:center;color:${C.bg};font-size:13px}

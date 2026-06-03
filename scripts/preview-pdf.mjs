@@ -72,7 +72,7 @@ async function render(sample, prefix) {
   await page.setViewport({ width: 820, height: 1200, deviceScaleFactor: 2 });
   await page.setContent(buildAnalysisHtml(sample), { waitUntil: "networkidle0" });
   await page.screenshot({ path: join(__dir, `${prefix}.png`), fullPage: true });
-  await page.pdf({ path: join(__dir, `${prefix}.pdf`), format: "A4", printBackground: true });
+  await page.pdf({ path: join(__dir, `${prefix}.pdf`), format: "A4", printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
   const sections = await page.$$("section.page");
   for (let i = 0; i < sections.length; i++) {
     await sections[i].screenshot({ path: join(__dir, `${prefix}-p${i}.png`) });
