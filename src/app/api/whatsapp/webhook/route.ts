@@ -46,6 +46,9 @@ export async function POST(request: Request) {
     return new Response("bad json", { status: 400 });
   }
 
+  // Log diagnóstico do payload recebido (temporário — remover depois de validar).
+  console.log("[whatsapp:webhook] in:", raw.slice(0, 1500));
+
   try {
     await handleEvent(payload);
   } catch (err) {
