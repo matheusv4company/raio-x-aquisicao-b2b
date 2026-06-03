@@ -223,8 +223,10 @@ export function DiagnosticForm() {
             hint="É no WhatsApp que você recebe a sua análise completa em PDF.">
             <input
               type="tel"
+              inputMode="tel"
+              maxLength={15}
               value={(data.telefone as string) ?? ""}
-              onChange={(e) => set("telefone", e.target.value)}
+              onChange={(e) => set("telefone", formatPhoneInput(e.target.value))}
               placeholder="(11) 99999-9999"
               className={inputClass(errors.telefone)}
             />
@@ -244,6 +246,21 @@ export function DiagnosticForm() {
           {errors.consentimento && (
             <p className="-mt-2 text-sm text-red-600">{errors.consentimento}</p>
           )}
+        </div>
+      )}
+
+      {submitting && (
+        <div className="mt-6">
+          <style>{`@keyframes loadfill{from{width:6%}to{width:94%}}`}</style>
+          <div className="mb-2 text-sm text-zinc-600">
+            Gerando sua análise e montando seu PDF…
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+            <div
+              className="h-full rounded-full bg-zinc-900"
+              style={{ animation: "loadfill 14s cubic-bezier(.15,.85,.25,1) forwards" }}
+            />
+          </div>
         </div>
       )}
 
@@ -341,6 +358,16 @@ function Pills({
 function maskPhone(raw: string): string {
   const d = raw.replace(/\D/g, "");
   return d.length >= 4 ? `•••• ${d.slice(-4)}` : raw;
+}
+
+// Máscara de telefone BR: limita a 11 dígitos e formata (DDD) + 8/9 dígitos.
+function formatPhoneInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
 function ConfirmationScreen({ data }: { data: DiagnosticInput }) {

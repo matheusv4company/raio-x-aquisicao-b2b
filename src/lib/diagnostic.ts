@@ -77,7 +77,12 @@ export const diagnosticSchema = z.object({
   // Etapa 3 — contato
   nome: z.string().min(2, "Informe seu nome"),
   email: z.string().email("E-mail inválido"),
-  telefone: z.string().min(10, "Informe um WhatsApp válido com DDD"),
+  telefone: z
+    .string()
+    .refine((v) => {
+      const d = v.replace(/\D/g, "");
+      return d.length === 10 || d.length === 11;
+    }, "Informe um WhatsApp válido com DDD"),
   consentimento: z
     .boolean()
     .refine((v) => v === true, { message: "É necessário aceitar para continuar" }),
