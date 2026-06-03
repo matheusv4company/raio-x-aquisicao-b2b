@@ -77,9 +77,12 @@ async function handleEvent(payload: any, origin: string): Promise<void> {
       for (const msg of change?.value?.messages ?? []) {
         const from = msg?.from ? `+${String(msg.from).replace(/\D/g, "")}` : null;
         if (!from) continue;
+        // Aceita o clique no quick-reply (button/interactive) E o texto digitado pelo lead
+        // (muitos digitam "quero receber" em vez de tocar no botão).
         const text = (
           msg?.button?.text ??
           msg?.interactive?.button_reply?.title ??
+          msg?.text?.body ??
           ""
         ).toString();
         if (text) await handleButton(from, text, origin);
