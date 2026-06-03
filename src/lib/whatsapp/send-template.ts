@@ -43,8 +43,11 @@ export async function sendDiagnosticReadyTemplate(
     return { sent: false, skipped: "fora da allowlist", to };
   }
 
-  // 4) Dedup (1 template por telefone na janela)
-  if (await wasTemplateSentToPhoneRecently(to, DEDUP_WINDOW_SECONDS)) {
+  // 4) Dedup (1 template por telefone na janela). Janela 0 => desativado (testes).
+  if (
+    DEDUP_WINDOW_SECONDS > 0 &&
+    (await wasTemplateSentToPhoneRecently(to, DEDUP_WINDOW_SECONDS))
+  ) {
     console.log(`[whatsapp] dedup — template já enviado a ${to} recentemente`);
     return { sent: false, skipped: "dedup", to };
   }

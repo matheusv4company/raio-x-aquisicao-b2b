@@ -15,8 +15,14 @@ export const waConfig = {
     .filter(Boolean),
 };
 
-// 1 template por telefone a cada 24h (dedup).
-export const DEDUP_WINDOW_SECONDS = 24 * 60 * 60;
+// Dedup: no máximo 1 template por telefone dentro desta janela (em segundos).
+// Configurável via WHATSAPP_DEDUP_SECONDS. Default 24h. Defina 0 para DESATIVAR (ex.: testes).
+export const DEDUP_WINDOW_SECONDS = (() => {
+  const v = process.env.WHATSAPP_DEDUP_SECONDS;
+  if (v === undefined || v.trim() === "") return 24 * 60 * 60;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : 24 * 60 * 60;
+})();
 
 /** Envio real habilitado? Precisa do kill switch ligado + credenciais presentes. */
 export function canSend(): { ok: boolean; reason?: string } {
