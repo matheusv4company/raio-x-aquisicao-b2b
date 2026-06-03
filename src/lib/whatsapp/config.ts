@@ -16,12 +16,13 @@ export const waConfig = {
 };
 
 // Dedup: no máximo 1 template por telefone dentro desta janela (em segundos).
-// Configurável via WHATSAPP_DEDUP_SECONDS. Default 24h. Defina 0 para DESATIVAR (ex.: testes).
+// Configurável via WHATSAPP_DEDUP_SECONDS. Default 15min. Defina 0 para DESATIVAR (ex.: testes).
+const DEDUP_DEFAULT = 15 * 60;
 export const DEDUP_WINDOW_SECONDS = (() => {
   const v = process.env.WHATSAPP_DEDUP_SECONDS;
-  if (v === undefined || v.trim() === "") return 24 * 60 * 60;
+  if (v === undefined || v.trim() === "") return DEDUP_DEFAULT;
   const n = Number(v);
-  return Number.isFinite(n) && n >= 0 ? n : 24 * 60 * 60;
+  return Number.isFinite(n) && n >= 0 ? n : DEDUP_DEFAULT;
 })();
 
 /** Envio real habilitado? Precisa do kill switch ligado + credenciais presentes. */

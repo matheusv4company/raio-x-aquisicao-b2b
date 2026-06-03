@@ -4,8 +4,14 @@
 import { randomUUID } from "node:crypto";
 import { diagnosticSchema } from "@/lib/diagnostic";
 import { runEngine } from "@/lib/engine/engine";
-import { saveSubmission, savePdf, markTemplateSent } from "@/lib/submissions";
+import {
+  saveSubmission,
+  savePdf,
+  markTemplateSent,
+  wasTemplateSentToPhoneRecently,
+} from "@/lib/submissions";
 import { renderAnalysisPdf } from "@/lib/pdf/render";
+import { DEDUP_WINDOW_SECONDS } from "@/lib/whatsapp/config";
 import {
   sendDiagnosticReadyTemplate,
   normalizePhoneBR,
@@ -32,6 +38,26 @@ export async function POST(request: Request) {
   }
   const input = parsed.data;
   const telefone = normalizePhoneBR(input.telefone);
+
+  // Dedup: se já enviamos um template a esse número há pouco, bloqueia o reenvio.
+  // Curto-circuito ANTES de rodar a engine/PDF — economiza compute e sinaliza a UI (429).
+  if (DEDUP_WINDOW_SECONDS > 0) {
+    try {
+      if (await wasTemplateSentToPhoneRecently(telefone, DEDUP_WINDOW_SECONDS)) {
+        return Response.json(
+          {
+            ok: false,
+            error: "dedup",
+            retryAfterMinutes: Math.ceil(DEDUP_WINDOW_SECONDS / 60),
+          },
+          { status: 429 },
+        );
+      }
+    } catch (err) {
+      console.error("[/api/diagnostico] erro no check de dedup:", err);
+      // erro de DB não bloqueia o fluxo
+    }
+  }
 
   try {
     const run = await runEngine(input);

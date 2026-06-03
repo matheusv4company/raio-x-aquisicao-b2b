@@ -74,6 +74,15 @@ export function DiagnosticForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (res.status === 429) {
+        const data = await res.json().catch(() => null);
+        const min = (data as { retryAfterMinutes?: number } | null)?.retryAfterMinutes ?? 15;
+        setSubmitError(
+          `Você já solicitou sua análise há poucos minutos — ela foi enviada para o seu WhatsApp. ` +
+            `Confira lá; se precisar, tente de novo em cerca de ${min} minutos.`,
+        );
+        return;
+      }
       if (!res.ok) throw new Error("Falha no envio");
       setConfirmed(payload);
     } catch {
