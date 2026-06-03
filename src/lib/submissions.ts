@@ -1,5 +1,6 @@
 // Acesso à tabela submissions. Todas as funções degradam para no-op/null se não houver DB.
 import { sql, ensureSchema } from "@/lib/db";
+import { phoneVariantsBR } from "@/lib/whatsapp/phone";
 import type { DiagnosticInput } from "@/lib/diagnostic";
 import type { EngineRun } from "@/lib/engine/types";
 
@@ -85,13 +86,19 @@ export async function findById(id: string): Promise<SubmissionRow | null> {
   return rows[0] ?? null;
 }
 
-/** Webhook: encontra a submissão mais recente de um telefone (o que clicou no botão). */
+/**
+ * Webhook: encontra a submissão mais recente de um telefone (o que clicou no botão).
+ * Casa QUALQUER variante do número (com/sem o 9º dígito), pois a Meta pode mandar o
+ * wa_id sem o 9 enquanto o lead salvou com o 9 (ou vice-versa).
+ */
 export async function findLatestByPhone(telefone: string): Promise<SubmissionRow | null> {
   if (!sql) return null;
   await ensureSchema();
+  const variants = phoneVariantsBR(telefone);
+  if (variants.length === 0) return null;
   const rows = await sql<SubmissionRow[]>`
     SELECT id, nome, telefone, channel, archetype, result, wa_status, wa_pdf_sent_at
-    FROM submissions WHERE telefone = ${telefone} ORDER BY created_at DESC LIMIT 1
+    FROM submissions WHERE telefone IN ${sql(variants)} ORDER BY created_at DESC LIMIT 1
   `;
   return rows[0] ?? null;
 }

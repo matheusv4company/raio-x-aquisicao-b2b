@@ -9,25 +9,16 @@ import {
 import { sendMessage } from "@/lib/whatsapp/client";
 import { wasTemplateSentToPhoneRecently } from "@/lib/submissions";
 
+// Re-export para manter os importadores atuais (ex.: /api/diagnostico) funcionando.
+export { normalizePhoneBR, isValidPhoneBR } from "@/lib/whatsapp/phone";
+import { isValidPhoneBR } from "@/lib/whatsapp/phone";
+
 export interface SendResult {
   sent: boolean;
   skipped?: string;
   status?: number;
   error?: unknown;
   to: string;
-}
-
-/** Normaliza telefone BR para E.164 (+55DDDNÚMERO). */
-export function normalizePhoneBR(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("55") && digits.length >= 12) return `+${digits}`;
-  return `+55${digits}`;
-}
-
-/** +55 + DDD(2) + número(8 ou 9) = 12 ou 13 dígitos. */
-export function isValidPhoneBR(e164: string): boolean {
-  const d = e164.replace(/\D/g, "");
-  return d.startsWith("55") && (d.length === 12 || d.length === 13);
 }
 
 export async function sendDiagnosticReadyTemplate(
